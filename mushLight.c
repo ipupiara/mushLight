@@ -8,8 +8,117 @@
 
 #include <avr/io.h>
 #include <stdio.h>
+#include <string.h>
+#include <inttypes.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
+#include <math.h>
+
+
+
+
+#define usartBufferSize  200
+uint8_t   putInBP;
+uint8_t   takeOutBP;
+uint8_t	  usartBuffer[usartBufferSize];
+
+
+uint8_t   nextBP(uint8_t inp)
+{
+	uint8_t next = inp + 1;
+	if (inp > usartBufferSize -1) {
+		next = 0;
+	}
+	return next;
+}
+
+
+
+
+int8_t usartIdle()
+{
+	int8_t res = 0;
+	return res;
+}
+
+void putCharToUSARTOutAddress(int8_t ch)
+{
+}
+
+int8_t  addCharToBuffer(char ch)
+{
+	int8_t needStart = 0; 
+	int8_t res;
+
+	cli();
+ 	if (takeOutBP == putInBP) {
+		needStart = usartIdle();  
+	}
+	if ( nextBP(putInBP) !=  takeOutBP ) {   
+		putInBP = nextBP (putInBP);   
+		res = 1;
+		usartBuffer [putInBP]   = ch;
+	}	else {
+		res= 0;   
+	}
+	if (needStart  )  {
+		putCharToUSARTOutAddress(usartBuffer[takeOutBP]);
+		takeOutBP = next(takeOutBP);
+	} 	
+	sei();
+	return res;
+}
+
+
+void addToUsart(char* st)
+{
+	int8_t cnt;
+	for (cnt = 0; cnt < strlen(st);  ++cnt) {
+		addCharToBuffer(st[cnt]);
+		//  for  a first test done this way, later we'll create a addString.. method 
+		// check behaviour of above operator ++ in disassembled code
+	}
+}
+
+
+ISR(usart)
+{
+	cli();
+	if ((usartIdle()) && (takeOutBP != putInBP))
+	{
+		putCharToUSARTOutAddress(usartBuffer[takeOutBP]);
+		takeOutBP = next(takeOutBP);
+	}
+	sei();
+}
+
+
+void startUSART( unsigned int baud)
+{
+	// Set baud rate 
+	
+	UBRR0H = (unsigned char)(baud>>8);
+	UBRR0L = (unsigned char)baud;
+
+	// disable double speed and multi processor communication 
+	UCSR0A =  UCSR0A &  !( (1 << U2X0) | (1<<MPCM0))  ;//0b11111100) ;
+	
+	// Enable receiver and transmitter
+	UCSR0B=(1<<RXEN0)|(1<<TXEN0);
+//	UCSR0B = 0b00011000;  // rx compl intr ena - tx compl intr ena - dreg empty intr ena - rx ena - tx ena - sz2 (size bit 2)  - 9. bit rx - 9. tx
+
+	UCSR0C = 0b00000110; // "00" async usart - "00" disa parity - 1 (or 2) stop bit - sz1 - sz0 (set t0 8 bit) - clk polarity (sync only)
+
+
+}
+
+
+
+
+void startPWM()
+{
+	// start pwm on value 0
+}
 
 
 
@@ -35,73 +144,19 @@ ISR(TIMER0_COMPA_vect)
 }
 
 
-#define usartBufferSize  200
-uint8_t   topBP;
-uint8_t   bottomBP;
-
-//ISR(usart)
-//		cli
-//   if bottom != top
-//			take char at bottom 
-//           inc buttom
-//			sti
-//			put char into outbuffer
-//		
-//
-//  )
-
-int8_t  addCharToBuffer(char ch)
-{
-//			cli
-// if (next = top) needStart = true
-//	if ( next(top) !=  bottom   
-//			top = next (top);   res = 1
-//			buff [top]   = ch
-//      else res= 0
-//			sti
-//  if needStart 
-//				cli
-//				set buttom char
-//			inc buttom
-//				sti
-//			put bottom char to outbuffwe
-// 
-//		return res
-}
-
-uint8_t   nextBP(uint8_t inp)
-{
-	uint8_t next = inp + 1;
-	if (inp > usartBufferSize -1) {
-		next = 0;
-	}
-	return next;
-}
-
-void addToUsart(char* st)
-{
-}
-
-
-void startPWM()
-{
-	// start pwm on value 0
-}
-
 void startADC()
 {
 	//
 }
 
-int8_t usartBuffer[usartBufferSize];
 
-void startUSART()
-{
-}
 
 void init()
 {
+	startUSART(7);
+	
 	startPWM();
+	startADC();
 
 
 
