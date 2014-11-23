@@ -15,8 +15,6 @@
 #include <math.h>
 
 
-
-
 #define usartBufferSize  200
 uint8_t   putInBP;
 uint8_t   takeOutBP;
@@ -33,16 +31,25 @@ uint8_t   nextBP(uint8_t inp)
 }
 
 
-
-
-int8_t usartIdle()
+int8_t usartDataRegEmpty()
 {
 	int8_t res = 0;
 	return res;
 }
 
-void putCharToUSARTOutAddress(int8_t ch)
+void putCharToUSARTDataReg(int8_t ch)
 {
+	UDR0 = ch;
+}
+
+void disableDataRegEmptyInterrupt()
+{
+	UCSR0B &=  !(1<<UDRIE0);
+}
+
+void enableDataRegEmptyInterrupt ()
+{
+	UCSR0B |=  (1<<UDRIE0);
 }
 
 int8_t  addCharToBuffer(char ch)
@@ -50,9 +57,9 @@ int8_t  addCharToBuffer(char ch)
 	int8_t needStart = 0; 
 	int8_t res;
 
-	cli();
+	cli();   // critical section !
  	if (takeOutBP == putInBP) {
-		needStart = usartIdle();  
+		needStart = usartDataRegEmpty();  //
 	}
 	if ( nextBP(putInBP) !=  takeOutBP ) {   
 		putInBP = nextBP (putInBP);   
@@ -62,7 +69,8 @@ int8_t  addCharToBuffer(char ch)
 		res= 0;   
 	}
 	if (needStart  )  {
-		putCharToUSARTOutAddress(usartBuffer[takeOutBP]);
+		enableDataRegEmptyInterrupt();
+		putCharToUSARTDataReg(usartBuffer[takeOutBP]);
 		takeOutBP = next(takeOutBP);
 	} 	
 	sei();
@@ -83,11 +91,17 @@ void addToUsart(char* st)
 
 ISR(usart)
 {
+	//  if highly timecritical methods can be made inline
+	//  or even better changed to a #define 
 	cli();
-	if ((usartIdle()) && (takeOutBP != putInBP))
+	if (usartDataRegEmpty())
 	{
-		putCharToUSARTOutAddress(usartBuffer[takeOutBP]);
-		takeOutBP = next(takeOutBP);
+		if (takeOutBP != putInBP)  {
+			putCharToUSARTDataReg(usartBuffer[takeOutBP]);
+			takeOutBP = next(takeOutBP);
+		}   else  {
+			disableDataRegEmptyInterrupt();
+		}
 	}
 	sei();
 }
@@ -101,15 +115,13 @@ void startUSART( unsigned int baud)
 	UBRR0L = (unsigned char)baud;
 
 	// disable double speed and multi processor communication 
-	UCSR0A =  UCSR0A &  !( (1 << U2X0) | (1<<MPCM0))  ;//0b11111100) ;
+	UCSR0A =  UCSR0A &  !( (1 << U2X0) | (1<<MPCM0))  ;//  & 0b11111100) ;
 	
-	// Enable receiver and transmitter
-	UCSR0B=(1<<RXEN0)|(1<<TXEN0);
+	// Enable  transmitter  and DataRecEmpty interrupt
+	UCSR0B=    (1<<TXEN0) | (1<<UDRIE0);
 //	UCSR0B = 0b00011000;  // rx compl intr ena - tx compl intr ena - dreg empty intr ena - rx ena - tx ena - sz2 (size bit 2)  - 9. bit rx - 9. tx
 
-	UCSR0C = 0b00000110; // "00" async usart - "00" disa parity - 1 (or 2) stop bit - sz1 - sz0 (set t0 8 bit) - clk polarity (sync only)
-
-
+	UCSR0C = (1<<UCSZ01) | (1<<UCSZ00);   //  8 bits,no parity,async mode, 1 stop bit
 }
 
 
@@ -153,26 +165,27 @@ void startADC()
 
 void init()
 {
-	startUSART(7);
+	startUSART(3);   //  115.2 k at 8 MHz
+//  startUSART(8);					//   115.2 k at 16 Mhz
 	
 	startPWM();
 	startADC();
 
 
 
-// Timer 0    used for ADC triggering  in TriaRunning mode
+	// Timer 0    used for ADC triggering  in TriaRunning mode
 
-TCCR0A = (1< WGM01);   // CTC
+	TCCR0A = (1< WGM01);   // CTC
 
-OCR0A = 0xFF;  // counter top value, 0xFF means approx 42.18 ADC measures and write to mem per sec
+	OCR0A = 0xFF;  // counter top value, 0xFF means approx 42.18 ADC measures and write to mem per sec
 
-TCNT0 = 0x00 ;
+	TCNT0 = 0x00 ;
 
-//		TCCR0B = 0b00000101  ; // CTC on CC0A , set clk / 1024, timer started
-//		TIMSK0  = 0b00000010;  // ena  interrupts, and let run ADC
-// 		not yet start Timer0 and ADC, to be tested
-TCCR0B = 0b00000000  ; // CTC on CC0A , not yet started
-TIMSK0  = 0b00000000;
+	//		TCCR0B = 0b00000101  ; // CTC on CC0A , set clk / 1024, timer started
+	//		TIMSK0  = 0b00000010;  // ena  interrupts, and let run ADC
+	// 		not yet start Timer0 and ADC, to be tested
+	TCCR0B = 0b00000000  ; // CTC on CC0A , not yet started
+	TIMSK0  = 0b00000000;
 
 
 
