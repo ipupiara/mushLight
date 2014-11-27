@@ -15,7 +15,7 @@ COMMON = -mmcu=$(MCU)
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON)
-CFLAGS += -Wall -gdwarf-2 -Os -std=gnu99 -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+CFLAGS += -Wall -gdwarf-2 -std=gnu99 -O0 -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 
 ## Assembly specific flags
@@ -37,7 +37,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Objects that must be built in order to link
-OBJECTS = mushLight.o 
+OBJECTS = mushLight.o pwmPID.o pwmUSART.o pwmpwm.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
@@ -47,6 +47,15 @@ all: $(TARGET) mushLight2.hex mushLight2.eep mushLight2.lss size
 
 ## Compile
 mushLight.o: ../mushLight.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+pwmPID.o: ../pwmPID.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+pwmUSART.o: ../pwmUSART.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+pwmpwm.o: ../pwmpwm.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 ##Link
