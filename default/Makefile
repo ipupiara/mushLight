@@ -37,7 +37,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Objects that must be built in order to link
-OBJECTS = mushLight.o pwmPID.o pwmUSART.o pwmpwm.o 
+OBJECTS = mushLight.o pwmPID.o pwmUSART.o pwmpwm.o pwmadc.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
@@ -56,6 +56,9 @@ pwmUSART.o: ../pwmUSART.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 pwmpwm.o: ../pwmpwm.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+pwmadc.o: ../pwmadc.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 ##Link
