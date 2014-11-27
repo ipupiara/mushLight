@@ -14,6 +14,8 @@
 #include <util/atomic.h>
 #include <math.h>
 
+#include "triacPID"
+
 
 #define usartBufferSize  200
 uint8_t   putInBP;
@@ -59,8 +61,8 @@ int8_t  addCharToBuffer(char ch)
 
 	cli();   // critical section !
  	if (takeOutBP == putInBP) {
-		needStart = usartDataRegEmpty();  //
-	}
+		needStart = usartDataRegEmpty(); 
+	} 
 	if ( nextBP(putInBP) !=  takeOutBP ) {   
 		putInBP = nextBP (putInBP);   
 		res = 1;
@@ -70,11 +72,29 @@ int8_t  addCharToBuffer(char ch)
 	}
 	if (needStart  )  {
 		enableDataRegEmptyInterrupt();
-		putCharToUSARTDataReg(usartBuffer[takeOutBP]);
-		takeOutBP = next(takeOutBP);
+		takeOutBP = nextBP(takeOutBP);
+		putCharToUSARTDataReg(usartBuffer[takeOutBP]);		
 	} 	
 	sei();
 	return res;
+}
+
+
+ISR(USART_UDRE_vect)
+{
+	//  if highly timecritical methods can be made inline
+	//  or even better changed to a #define 
+	cli();
+	if (usartDataRegEmpty())
+	{
+		if (takeOutBP != putInBP)  {
+			takeOutBP = nextBP(takeOutBP);
+			putCharToUSARTDataReg(usartBuffer[takeOutBP]);
+		}   else  {
+			disableDataRegEmptyInterrupt();
+		}
+	}
+	sei();
 }
 
 
@@ -86,24 +106,6 @@ void addToUsart(char* st)
 		//  for  a first test done this way, later we'll create a addString.. method 
 		// check behaviour of above operator ++ in disassembled code
 	}
-}
-
-
-ISR(usart)
-{
-	//  if highly timecritical methods can be made inline
-	//  or even better changed to a #define 
-	cli();
-	if (usartDataRegEmpty())
-	{
-		if (takeOutBP != putInBP)  {
-			putCharToUSARTDataReg(usartBuffer[takeOutBP]);
-			takeOutBP = next(takeOutBP);
-		}   else  {
-			disableDataRegEmptyInterrupt();
-		}
-	}
-	sei();
 }
 
 
@@ -129,36 +131,76 @@ void startUSART( unsigned int baud)
 
 void startPWM()
 {
-	// start pwm on value 0
+	// start pwm
+	TCCR0A  = (1<<COM0A1) | (1<<WGM00) | (1<<WGM01);
+	OCR0A  = 0x00;     // set duty cycle to 0 until pid regulator rises it
+	TIMSK0 = 0x00;      // no interrupt needed
+	TCCR0B  = (1<<CS01);   // (clk / 8)  °  (clk/255) approx 4-5 k cycles per sec, start running
+	DDRB |= (1<<PB3);		// set PB3 (= OC0A)  as output
 }
 
 
 
 
 int16_t lastAmpsADCVal;
+#define pidStepDelays  2
+int16_t  adcCnt;
+int8_t   adcTick = 0;
 
 ISR(ADC_vect)
 {
 	lastAmpsADCVal = ADC;
-//	++ adcCnt;
+	++ adcCnt;
 
-//	if (adcCnt == pidStepDelays)  {
-//		adcCnt = 0;
-//		adcTick = 1;
-//	}
+	if (adcCnt == pidStepDelays)  {
+		adcCnt = 0;
+		adcTick = 1;
+	}
 	// call pid and set next correction
 }
 
 
 
-ISR(TIMER0_COMPA_vect)
+ISR(TIMER1_COMPA_vect)
 {    // needed for ADC so far..
 }
 
 
 void startADC()
 {
-	//
+	
+		// Timer 0    used for ADC triggering  in TriacRunning mode
+
+	TCCR1A = 0x00 ;   // 
+	OCR1A = 0x03F;  // counter top value, 0xFF means approx 10 ADC measures per sec
+	TIMSK1  =  (1 << OCIE1A);
+	TCNT1 = 0x0000 ;
+	TCCR1B = (1< WGM12) ;   //  CTC, stop timer until ADC configured
+	TCCR1C = 0x00;
+
+
+	//  init ADC
+
+	lastAmpsADCVal = 0;
+
+	ADMUX = (1<<REFS0); //  AVCC as ref.voltage, right adjust, ADC0 input 
+
+
+	ADCSRB = (1<<ADTS2) | (1<<ADTS0) ; 
+	//  timer 1 comp match trigger
+
+	ADCSRA  = (1<<ADEN) | (1<<ADATE) | (1<<ADIE) | (1<<ADPS0) | (1<<ADPS1) | (1<<ADPS2);
+	// ena adc, set autotrigger mode, int enable,  128 prescaler
+
+	ADCSRA  = 0b00000111;  // disa ADC, ADATE, ADIE
+
+
+	// start Timer 0 and hence also ADC
+	TCCR1B |=  (1<< CS02)| (1<<CS00);    // set clk / 1024, timer started
+
+
+	sei();  // start interrupts if not yet started
+
 }
 
 
@@ -170,35 +212,17 @@ void init()
 	
 	startPWM();
 	startADC();
-
-
-
-	// Timer 0    used for ADC triggering  in TriaRunning mode
-
-	TCCR0A = (1< WGM01);   // CTC
-
-	OCR0A = 0xFF;  // counter top value, 0xFF means approx 42.18 ADC measures and write to mem per sec
-
-	TCNT0 = 0x00 ;
-
-	//		TCCR0B = 0b00000101  ; // CTC on CC0A , set clk / 1024, timer started
-	//		TIMSK0  = 0b00000010;  // ena  interrupts, and let run ADC
-	// 		not yet start Timer0 and ADC, to be tested
-	TCCR0B = 0b00000000  ; // CTC on CC0A , not yet started
-	TIMSK0  = 0b00000000;
-
-
-
-
-	//  init ADC
-
-	ADCSRA  = 0b00000111;  // disa ADC, ADATE, ADIE
-
-	lastAmpsADCVal = 0;
-
-	sei();  // start interrupts if not yet started
-	
 }
+
+
+/*
+*
+*
+*		P I D    methods
+*
+*/
+
+
 
 
 
@@ -209,6 +233,9 @@ int main(void)
 //	startPWM();
     while(1)
     {
-        //TODO:: Please write your application code 
+		if (adcTick = 1) {
+			adcTick = 0;
+			calcNextPWMDelay();
+		}
     }
 }
