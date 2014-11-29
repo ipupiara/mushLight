@@ -63,9 +63,5 @@ void startADC()
 
 	// start Timer 0 and hence also ADC
 	TCCR1B |=  (1<< CS02)| (1<<CS00);    // set clk / 1024, timer started
-
-
-	sei();  // start interrupts if not yet started
-
 }
 

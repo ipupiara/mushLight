@@ -25,6 +25,7 @@ void init()
 	
 	startPWM();
 	startADC();
+	sei();  // start interrupts if not yet started
 }
 
 
