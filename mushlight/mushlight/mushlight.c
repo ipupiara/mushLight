@@ -1,3 +1,4 @@
+
 /*
  * mushLight.c
  *
@@ -20,11 +21,11 @@
 
 void init()
 {
-	startUSART(3);   //  115.2 k at 8 MHz
-//  startUSART(8);					//   115.2 k at 16 Mhz
-	
-	startPWM();
-	startADC();
+	startUSART(0x0C);   //  115.2 k at 12 MHz with double clock (U2X0)
+
+	InitPID();	
+//	startPWM();
+//	startADC();
 	sei();  // start interrupts if not yet started
 }
 
@@ -32,13 +33,21 @@ void init()
 
 int main(void)
 {
-	InitPID();
+	int16_t cycleCount = 0;
+	int16_t periodCount = 0;
 	init();
     while(1)
     {
+		++ cycleCount;
+		if (cycleCount == 0) {
+			++ periodCount;
+			if ( (periodCount & 0x0F) == 0) {
+				printfUsart("counter of period: %X \n", periodCount);
+			}
+		}
 		if (adcTick == 1) {
 			adcTick = 0;
-			calcNextPWMDelay();
+//			calcNextPWMDelay();
 		}
     }
 }

@@ -28,6 +28,10 @@ uint8_t   nextBP(uint8_t inp)
 int8_t usartDataRegEmpty()
 {
 	int8_t res = 0;
+	res = (UCSR0A & (1 << UDRE0)) ;
+	if (res > 0) {
+		res = 1;
+	}
 	return res;
 }
 
@@ -38,7 +42,7 @@ void putCharToUSARTDataReg(int8_t ch)
 
 void disableDataRegEmptyInterrupt()
 {
-	UCSR0B &=  !(1<<UDRIE0);
+	UCSR0B &=  ~(1<<UDRIE0);
 }
 
 void enableDataRegEmptyInterrupt ()
@@ -74,8 +78,9 @@ int8_t  addCharToBuffer(char ch)
 
 ISR(USART_UDRE_vect)
 {
-	//  if highly timecritical methods can be made inline
+	//  highly timecritical methods can be made inline
 	//  or even better changed to a #define 
+	//  but for a first test, we leave it as it is
 	cli();
 	if (usartDataRegEmpty())
 	{
@@ -100,7 +105,7 @@ void addToUsart(char* st)
 	}
 }
 
-#define  printStrSz  40
+#define  printStrSz  80
 char  printStr [printStrSz];
 
 void printfUsart( char *emsg, ...)
@@ -126,11 +131,11 @@ void startUSART( unsigned int baud)
 	UBRR0H = (unsigned char)(baud>>8);
 	UBRR0L = (unsigned char)baud;
 
-	// disable double speed and multi processor communication 
-	UCSR0A =  UCSR0A &  !( (1 << U2X0) | (1<<MPCM0))  ;//  & 0b11111100) ;
+	// enable double speed and disable multi processor communication 
+	UCSR0A = (UCSR0A & ~(1<<MPCM0)) | (1 << U2X0) ; 
 	
-	// Enable  transmitter  and DataRecEmpty interrupt
-	UCSR0B=    (1<<TXEN0) | (1<<UDRIE0);
+	// Enable   DataRecEmpty interrupt    and enable transmitter  
+	UCSR0B=     (1<<UDRIE0)|  (1<<TXEN0) ;
 //	UCSR0B = 0b00011000;  // rx compl intr ena - tx compl intr ena - dreg empty intr ena - rx ena - tx ena - sz2 (size bit 2)  - 9. bit rx - 9. tx
 
 	UCSR0C = (1<<UCSZ01) | (1<<UCSZ00);   //  8 bits,no parity,async mode, 1 stop bit
