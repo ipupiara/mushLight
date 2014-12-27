@@ -11,15 +11,12 @@
 void startPWM()
 {
 	// start 
-	TCCR0A  = (1<<COM0A1) | (1<<WGM00) | (1<<WGM01);
+	TCCR0A  = (1<<COM0A1) | (1<<WGM00) | (1<<WGM01);          // fast pwm on oc0a  with top = ocr0a
 	OCR0A  = 0x00;     // set duty cycle to 0 until pid regulator rises it
 	TIMSK0 = 0x00;      // no interrupt needed
-	TCCR0B  = (1<<CS01);   // (clk / 8)  °  (clk/255) approx 4-5 k cycles per sec, start running
-	DDRB |= (1<<PB3);		// set PB3 (= OC0A)  as output
+	DDRD |= (1<<PD6);		// set PB3 (= OC0A)  as output
+	TCCR0B  = (1<<CS01); //  ? | (1<<WGM02); ?  // (clk / 8)   approx 4-5 k cycles per sec, fast pwm, start running
 }
-
-
-
 
 void setPWMDelay(int16_t newDelay)
 {

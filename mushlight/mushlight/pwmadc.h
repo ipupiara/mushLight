@@ -5,5 +5,4 @@ void startADC();
 
 int8_t   adcTick;
 
-
 #endif

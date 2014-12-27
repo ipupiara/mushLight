@@ -24,8 +24,8 @@ void init()
 	startUSART(0x0C);   //  115.2 k at 12 MHz with double clock (U2X0)
 
 	InitPID();	
-//	startPWM();
-//	startADC();
+	startPWM();
+	startADC();
 	sei();  // start interrupts if not yet started
 }
 
@@ -35,6 +35,7 @@ int main(void)
 {
 	int16_t cycleCount = 0;
 	int16_t periodCount = 0;
+	int16_t adcCount = 0;
 	init();
     while(1)
     {
@@ -47,6 +48,7 @@ int main(void)
 		}
 		if (adcTick == 1) {
 			adcTick = 0;
+			++ adcCount;
 //			calcNextPWMDelay();
 		}
     }
