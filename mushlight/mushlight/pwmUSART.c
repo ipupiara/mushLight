@@ -18,7 +18,7 @@ uint8_t	  usartBuffer[usartBufferSize];
 uint8_t   nextBP(uint8_t inp)
 {
 	uint8_t next = inp + 1;
-	if (inp > usartBufferSize -1) {
+	if (next > usartBufferSize -1) {
 		next = 0;
 	}
 	return next;
@@ -56,20 +56,20 @@ int8_t  addCharToBuffer(char ch)
 	int8_t res;
 
 	cli();   // critical section !
- 	if (takeOutBP == putInBP) {
+ 	if (takeOutBP == putInBP) {       
 		needStart = usartDataRegEmpty(); 
 	} 
 	if ( nextBP(putInBP) !=  takeOutBP ) {   
-		putInBP = nextBP (putInBP);   
+		putInBP = nextBP (putInBP);
+		usartBuffer [putInBP]   = ch;   
 		res = 1;
-		usartBuffer [putInBP]   = ch;
 	}	else {
 		res= 0;   
 	}
 	if (needStart  )  {
-		enableDataRegEmptyInterrupt();
 		takeOutBP = nextBP(takeOutBP);
-		putCharToUSARTDataReg(usartBuffer[takeOutBP]);		
+		putCharToUSARTDataReg(usartBuffer[takeOutBP]);
+		enableDataRegEmptyInterrupt();		
 	} 	
 	sei();
 	return res;
