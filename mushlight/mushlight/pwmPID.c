@@ -17,28 +17,26 @@ int8_t m_started;
 real m_kPTot, m_kP, m_kI, m_kD, m_stepTime, m_inv_stepTime, m_prev_error, m_error_thresh, m_integral;
 
 
-void InitializePID(real kpTot,real kpP, real ki, real kd, real error_thresh, real step_time)
+void InitializePID(real kpTotL,real kpPL, real kiL, real kdL, real error_threshL, real step_timeL)
 {
     // Initialize controller parameters
 	// PN 3.Oct 2011, added m_kP for better setting of proportional factor only
 	// though these 4 factors will be linearly dependent
-	m_kP   = kpP;
-    m_kPTot = kpTot;
-    m_kI = ki;
-    m_kD = kd;
-    m_error_thresh = error_thresh;
+	m_kP   = kpPL;
+    m_kPTot = kpTotL;
+    m_kI = kiL;
+    m_kD = kdL;
+    m_error_thresh = error_threshL;
 
     // Controller step time and its inverse
-    m_stepTime = step_time;
-    m_inv_stepTime = 1 / step_time;
+    m_stepTime = step_timeL;
+    m_inv_stepTime = 1 / step_timeL;
 
     // Initialize integral and derivative calculations
     m_integral = 0;
     m_started = 0;
 	
 }
-
-#define correctionThreshold  30
 
 real nextCorrection(real error)
 {
@@ -70,10 +68,11 @@ real nextCorrection(real error)
 
     // Return the PID controller actuator command
 	res = m_kPTot*(m_kP*error + m_kI*m_integral + m_kD*deriv);
-	if (res > correctionThreshold) {
-		res = correctionThreshold;
-	} else if (res < -1*correctionThreshold) {
-		res = -1* correctionThreshold;
+	
+	if (res > maxCorrection) {
+		res = maxCorrection;
+	} else if (res < -1*maxCorrection) {
+		res = -1* maxCorrection;
 	}
 
 #ifdef printfPID
@@ -106,7 +105,9 @@ void calcNextPWMDelay()
 void InitPID()
 {
 //	InitializePID(real kpTot, real kpP, real ki, real kd, real error_thresh, real step_time);   
-	InitializePID( -0.45, 1.1, 0.2, 0.2, 5, (pidStepDelays/pidStepsPerSecond));
+//	InitializePID( -0.45, 1.1, 0.2, 0.2, 5, (pidStepDelays/pidStepsPerSecond));
+	
+	InitializePID( kpTot, kpP, ki, kd, integralCorrectionThreshold, step_timeS);
 }
 
 
