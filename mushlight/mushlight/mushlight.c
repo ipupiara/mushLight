@@ -43,7 +43,7 @@ int main(void)
 		if (cycleCount == 0) {
 			++ periodCount;
 			if ( (periodCount & 0x0F) == 0) {
-				printfUsart("counter of period: %X \n", periodCount);
+//				printfUsart("counter of period: %X \n", periodCount);
 			}
 		}
 		if (adcTick == 1) {
