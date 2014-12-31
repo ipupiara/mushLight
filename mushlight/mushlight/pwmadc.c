@@ -23,7 +23,7 @@ void startTimer()
 void stopTimer()
 {
 	// start Timer 1 and hence also ADC
-	TCCR1B &=  ~(1<< CS02)| (1<<CS00);    // set clk / 1024, timer started
+	TCCR1B &=  ~((1<< CS02)| (1<<CS00));    // set clk / 1024, timer started
 }
 
 
@@ -46,9 +46,12 @@ ISR(ADC_vect)
 
 ISR(TIMER1_COMPA_vect)
 {    // needed for ADC so far..
+	uint8_t   TIFRmask;
 	++t1Count;
 	ADCSRA  |= (1<<ADSC);   // start one ADC cycle
 	stopTimer();  // 
+	TIFRmask = ~(1<< OCF1A);   //  for debuging 
+	TIFR1  &=  TIFRmask;  // during debugging found out, that it is better to do this
 }
 
 
