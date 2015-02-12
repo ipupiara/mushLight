@@ -40,4 +40,12 @@ void calcNextPWMDelay();
 
 #define maxCorrection  30    
 
+
+//////   Buzzer methods
+
+void initBuzzer();
+
+void calcNextBuzzerFrequency();
+
+
 #endif

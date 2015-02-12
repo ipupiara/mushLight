@@ -14,18 +14,28 @@
 #include <util/atomic.h>
 #include <math.h>
 
+
 #include "pwmPID.h"
 #include "pwmUSART.h"
 #include "pwmadc.h"
 #include "pwmpwm.h"
 
+#define BUZZER
+
 void init()
 {
 	startUSART(0x0C);   //  115.2 k at 12 MHz with double clock (U2X0)
 
-	InitPID();	
-	startPWM();
-	startADC();
+	#ifdef BUZZER 
+		initBuzzer();
+		startBuzzerPWM();
+		startBuzzerADC();
+	#else
+		InitPID();	
+		startPWM();
+		startADC();
+	#endif
+	
 	sei();  // start interrupts if not yet started
 }
 
@@ -49,7 +59,11 @@ int main(void)
 		if (adcTick == 1) {
 			adcTick = 0;
 			++ adcCount;
-//			calcNextPWMDelay();
+#ifdef BUZZER
+			calcNextBuzzerFrequency();
+#else			
+			calcNextPWMDelay();
+#endif			
 		}
     }
 }
