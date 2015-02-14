@@ -1,10 +1,12 @@
 #include <avr/io.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
 #include "pwmpwm.h"
+#include "pwmadc.h"
 
 
 
@@ -65,4 +67,54 @@ int16_t getBuzzerPWMWidth()
 
 
 
+
+//////////  Gauge methods
+
+#define amtLights  6      // max 8
+
+
+enum directions {
+			upward = 1,
+			downward
+};
+
+int8_t stepsAmtLeft;
+int8_t actualLight;
+
+int8_t randomNum(int8_t maximum)
+{
+	int ra = rand() % (maximum) ;
+	return ra;
+}
+
+int8_t randomNumber()
+{
+	int ra = rand() % (amtLights + 1) ;
+	return ra;
+}
+
+void randomJob ()
+{
+	
+}
+
+
+void initGaugeTimer()
+{
+	PORTD = 0x00;
+	DDRD = 0xFF;   // all outputs
+	actualLight = -1;
+
+	srand(0xFFAA);   // until better solution is found
+	randomJob();
+	setGaugeTimer();
+	
+	// set Timer 1
+}
+
+
+void nextGaugeTick()
+{
+	
+}
 

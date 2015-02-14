@@ -12,5 +12,8 @@ void startBuzzerPWM();
 void setBuzzerPWMWidth(int16_t  newWidth);
 int16_t getBuzzerPWMWidth();
 
+void initGaugeTimer();
+
+void nextGaugeTick();
 
 #endif

@@ -20,7 +20,8 @@
 #include "pwmadc.h"
 #include "pwmpwm.h"
 
-#define BUZZER
+//#define BUZZER
+#define GAUGE
 
 void init()
 {
@@ -31,9 +32,13 @@ void init()
 		startBuzzerPWM();
 		startBuzzerADC();
 	#else
+	#ifdef GAUGE
+		initGaugeTimer();
+	#else
 		InitPID();	
 		startPWM();
 		startADC();
+	#endif	
 	#endif
 	
 	sei();  // start interrupts if not yet started
@@ -56,14 +61,20 @@ int main(void)
 //				printfUsart("counter of period: %X \n", periodCount);
 			}
 		}
+#ifdef GAUGE
+		nextGaugeTick();
+#endif		
 		if (adcTick == 1) {
 			adcTick = 0;
 			++ adcCount;
-#ifdef BUZZER
+#ifdef BUZZER  
 			calcNextBuzzerFrequency();
-#else			
+#else 		
 			calcNextPWMDelay();
 #endif			
 		}
+		#ifdef GAUGE
+			enterIdleSleepMode();
+		#endif
     }
 }
