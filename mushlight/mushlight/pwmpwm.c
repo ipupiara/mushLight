@@ -79,7 +79,24 @@ enum directions {
 };
 
 int8_t stepsAmtLeft;
+int8_t direction;
 int8_t actualLight;
+
+
+void switchOnLamp(int8_t lamp)
+{
+	int8_t  la;
+	la = lamp -1;
+	PORTD |= (1 < la);
+}
+
+void switchOffLamp(int8_t lamp)
+{
+	int8_t  la;
+	la = lamp -1;
+	PORTD &= ~(1 < la);
+}
+
 
 int8_t randomNum(int8_t maximum)
 {
@@ -95,7 +112,27 @@ int8_t randomNumber()
 
 void randomJob ()
 {
-	
+	if (stepsAmtLeft == 0) {
+		stepsAmtLeft = randomNumber() ;
+		direction = randomNum(1)  +1;
+	} else
+	if (stepsAmtLeft > 0) {
+		if (direction == upward)  {
+			if (actualLight < amtLights) {
+				++ actualLight;
+				switchOnLamp(actualLight);
+			}
+		} else {
+			if (direction == downward) {
+				if (actualLight > 0 ) {
+					switchOffLamp(actualLight);
+					-- actualLight;
+				}
+			}
+			
+		}
+		--stepsAmtLeft;
+	}
 }
 
 
@@ -103,18 +140,19 @@ void initGaugeTimer()
 {
 	PORTD = 0x00;
 	DDRD = 0xFF;   // all outputs
-	actualLight = -1;
-
-	srand(0xFFAA);   // until better solution is found
-	randomJob();
-	setGaugeTimer();
 	
-	// set Timer 1
+	actualLight = 0;
+	direction = upward;
+	stepsAmtLeft = 0;
+
+	srand(0xAA55);   // until better solution is found
+
+	setGaugeTimer();	
 }
 
 
 void nextGaugeTick()
 {
-	
+	randomJob();
 }
 

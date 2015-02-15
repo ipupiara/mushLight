@@ -161,8 +161,9 @@ void enterIdleSleepMode()
 void setGaugeTimer()
 {
 	TCCR1A = 0x00 ;   //
-	OCR1A = 0x2E00;  // counter top value, 0x2FF means approx 1 timer per 1.5 sec
-	TIMSK1  = (1<<OCIE1A);  //  interrupt needed for wake up from idle
+//	OCR1A = 0x2E00;  // counter top value, 0x2FF means approx 1 timer per 1.5 sec
+	OCR1A = 0xFE00;   // for debugging only
+	TIMSK1  = (1<<OCIE1A);  //  interrupt needed for wake up from idle	
 	TCNT1 = 0x0000 ;
 	TCCR1B = (1<< WGM12) ;   //  CTC, stop timer
 	TCCR1C = 0x00;
