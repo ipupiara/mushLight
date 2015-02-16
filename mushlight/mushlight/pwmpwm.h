@@ -16,4 +16,6 @@ void initGaugeTimer();
 
 void nextGaugeTick();
 
+void testLamps();
+
 #endif

@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include <avr/sleep.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -52,8 +53,10 @@ ISR(ADC_vect)
 
 #ifdef GAUGE
 
-ISR(TIMER1_COMPA_vect) {}    // just wake up from idle
-	
+ISR(TIMER1_COMPA_vect) 
+{
+	timerTick = 1;
+}
 #else 
 
 ISR(TIMER1_COMPA_vect)
@@ -149,8 +152,9 @@ void startBuzzerADC()
 
 void enterIdleSleepMode()
 {
-	MCUCR &= ~((1<<SM0) | (1<<SM1)); // select idle sleep mode
+//	MCUCR |= 0x00;    //((1<<SM0) | (1<<SM1)); // select idle sleep mode
 	MCUCR |= (1<<SE) ; // enter idle sleep mode
+	sleep_cpu();
 	MCUCR &= ~(1<<SE); // disable sleep mode after wake up
 }
 
@@ -161,8 +165,8 @@ void enterIdleSleepMode()
 void setGaugeTimer()
 {
 	TCCR1A = 0x00 ;   //
-//	OCR1A = 0x2E00;  // counter top value, 0x2FF means approx 1 timer per 1.5 sec
-	OCR1A = 0xFE00;   // for debugging only
+	OCR1A = 0x2E00;  // counter top value, means approx 1 timer per 1.5 sec
+//	OCR1A = 0xFE00;   // for debugging only
 	TIMSK1  = (1<<OCIE1A);  //  interrupt needed for wake up from idle	
 	TCNT1 = 0x0000 ;
 	TCCR1B = (1<< WGM12) ;   //  CTC, stop timer

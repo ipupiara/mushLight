@@ -20,12 +20,12 @@
 #include "pwmadc.h"
 #include "pwmpwm.h"
 
-//#define BUZZER
-#define GAUGE
 
 void init()
 {
+	#ifndef GAUGE
 	startUSART(0x0C);   //  115.2 k at 12 MHz with double clock (U2X0)
+	#endif
 
 	#ifdef BUZZER 
 		initBuzzer();
@@ -52,6 +52,7 @@ int main(void)
 	int16_t periodCount = 0;
 	int16_t adcCount = 0;
 	init();
+	testLamps();
     while(1)
     {
 		++ cycleCount;
@@ -62,7 +63,10 @@ int main(void)
 			}
 		}
 #ifdef GAUGE
-		nextGaugeTick();
+		if (timerTick == 1){
+			timerTick = 0;
+			nextGaugeTick();
+		}
 #endif		
 		if (adcTick == 1) {
 			adcTick = 0;
@@ -74,7 +78,7 @@ int main(void)
 #endif			
 		}
 		#ifdef GAUGE
-			enterIdleSleepMode();
+			enterIdleSleepMode();	
 		#endif
     }
 }

@@ -82,51 +82,67 @@ int8_t stepsAmtLeft;
 int8_t direction;
 int8_t actualLight;
 
+int8_t  lampTranslate [amtLights + 1] = {0,6,5,4,3,7,8};
 
 void switchOnLamp(int8_t lamp)
 {
 	int8_t  la;
-	la = lamp -1;
-	PORTD |= (1 < la);
+	la = lampTranslate[lamp];
+	la = la -1;
+	int8_t msk = (1 << la);
+	PORTD |= msk;
 }
 
 void switchOffLamp(int8_t lamp)
 {
 	int8_t  la;
-	la = lamp -1;
-	PORTD &= ~(1 < la);
+	la = lampTranslate[lamp];
+	la = la -1;
+	PORTD &= ~(1 << la);
 }
 
 
 int8_t randomNum(int8_t maximum)
 {
-	int ra = rand() % (maximum) ;
+	int ra = (rand() % maximum) + 1 ;
 	return ra;
 }
 
-int8_t randomNumber()
+int8_t randomLamp()
 {
-	int ra = rand() % (amtLights + 1) ;
-	return ra;
+	return randomNum (amtLights);
 }
 
 void randomJob ()
 {
 	if (stepsAmtLeft == 0) {
-		stepsAmtLeft = randomNumber() ;
-		direction = randomNum(1)  +1;
-	} else
+		stepsAmtLeft = randomLamp() ;
+		if (actualLight == 0) {
+			direction = upward;
+		} else if (actualLight == amtLights) {
+			direction = downward;
+		} else {
+			direction = randomNum(2) ;
+		}
+	} 
 	if (stepsAmtLeft > 0) {
 		if (direction == upward)  {
 			if (actualLight < amtLights) {
 				++ actualLight;
 				switchOnLamp(actualLight);
+				if (actualLight == amtLights){
+					stepsAmtLeft = 1;
+				}
+
 			}
 		} else {
 			if (direction == downward) {
 				if (actualLight > 0 ) {
 					switchOffLamp(actualLight);
 					-- actualLight;
+					if (actualLight == 0){
+						stepsAmtLeft = 1;
+					}
 				}
 			}
 			
@@ -139,7 +155,9 @@ void randomJob ()
 void initGaugeTimer()
 {
 	PORTD = 0x00;
+	PIND  = 0x00;
 	DDRD = 0xFF;   // all outputs
+	PORTD = 0x00;
 	
 	actualLight = 0;
 	direction = upward;
@@ -154,5 +172,16 @@ void initGaugeTimer()
 void nextGaugeTick()
 {
 	randomJob();
+}
+
+void testLamps()
+{
+	int8_t i1;
+	for (i1 = 1; i1 <= 6; ++ i1) {
+		switchOnLamp(i1);
+	}
+	for (i1 = 6; i1 > 0; --i1)   {
+		switchOffLamp(i1);
+	}
 }
 
